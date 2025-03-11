@@ -1,12 +1,20 @@
-import { Outlet } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
+import LandingPage from './components/landing_page/LandingPage.jsx';
+import Authentication from './components/Authentication/auth.jsx';
+import './index.css';
+
 
 function App() {
   console.log('App component is rendering');
   return (
     <div className="app">
-      {/* Debug message to verify content is rendering */}
       <h2>App Container is Working</h2>
-      <Outlet /> {/* This is where the child routes will render */}
+      
+      <Routes>
+        {/* Public routes */}
+        <Route index element={<LandingPage />} /> {/* Route for the landing page */}
+        <Route path="/login" element={<Authentication />} /> {/* Route for login page */}
+      </Routes>
     </div>
   );
 }
