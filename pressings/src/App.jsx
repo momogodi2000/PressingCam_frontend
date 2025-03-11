@@ -1,19 +1,15 @@
 import { Routes, Route } from 'react-router-dom';
 import LandingPage from './components/landing_page/LandingPage.jsx';
 import Authentication from './components/Authentication/auth.jsx';
-import './index.css';
-
 
 function App() {
   console.log('App component is rendering');
   return (
     <div className="app">
-      <h2>App Container is Working</h2>
-      
+      {/* Routes moved from main.jsx to App.jsx */}
       <Routes>
-        {/* Public routes */}
-        <Route index element={<LandingPage />} /> {/* Route for the landing page */}
-        <Route path="/login" element={<Authentication />} /> {/* Route for login page */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Authentication />} />
       </Routes>
     </div>
   );
