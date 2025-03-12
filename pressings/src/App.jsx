@@ -3,8 +3,9 @@ import LandingPage from './components/landing_page/LandingPage.jsx';
 import Authentication from './components/Authentication/auth.jsx';
 import ForgotPassword from './components/Authentication/forgot_password.jsx';
 import Tarifs from './components/landing_page/tarifs.jsx';
-
-
+import { AdminDashboard } from './components/Dashboard/panel/admin_panel.jsx';
+import ClientsDashboard from './components/Dashboard/panel/Clients_panel.jsx'; // Ensure this import is correct
+import DeliveryDashboard from './components/Dashboard/panel/delivery_panel.jsx';
 
 function App() {
   console.log('App component is rendering');
@@ -17,8 +18,10 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/Tarifs-services" element={<Tarifs />} />
 
-
-
+        {/* Dashboard Routes */}
+        <Route path="/admin_panel" element={<AdminDashboard />} />
+        <Route path="/clients_panel" element={<ClientsDashboard />} /> {/* Ensure this route is correct */}
+        <Route path="/delivry_panel" element={<DeliveryDashboard />} />
       </Routes>
     </div>
   );
