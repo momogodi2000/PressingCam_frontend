@@ -5,6 +5,7 @@ import {
   CreditCard, Calendar, Settings, HelpCircle, LogOut,
   MessageSquare
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const ClientsLayout = ({ children }) => {
   const [notifications, setNotifications] = useState(3);
@@ -21,15 +22,15 @@ const ClientsLayout = ({ children }) => {
     { id: 4, message: 'Votre commande ORD-2025-000 a été livrée avec succès.', time: 'Il y a 7 jours', read: true },
   ];
 
-  // Menu items
+  // Menu items with paths
   const menuItems = [
-    { icon: <Home size={20} />, label: 'Tableau de bord', href: '#' },
-    { icon: <Package size={20} />, label: 'Mes commandes', href: '#' },
-    { icon: <Calendar size={20} />, label: 'Planifier', href: '#' },
-    { icon: <CreditCard size={20} />, label: 'Paiements', href: '#' },
-    { icon: <MessageSquare size={20} />, label: 'Messages', href: '#' },
-    { icon: <Settings size={20} />, label: 'Paramètres', href: '#' },
-    { icon: <HelpCircle size={20} />, label: 'Aide', href: '#' },
+    { icon: <Home size={20} />, label: 'Tableau de bord', path: '/' },
+    { icon: <Package size={20} />, label: 'Mes commandes', path: '/orders' },
+    { icon: <Calendar size={20} />, label: 'Planifier', path: '/schedule' },
+    { icon: <CreditCard size={20} />, label: 'Paiements', path: '/payments' },
+    { icon: <MessageSquare size={20} />, label: 'Messages', path: '/messages' },
+    { icon: <Settings size={20} />, label: 'Paramètres', path: '/settings' },
+    { icon: <HelpCircle size={20} />, label: 'Aide', path: '/help' },
   ];
 
   // Simulate loading
@@ -40,6 +41,20 @@ const ClientsLayout = ({ children }) => {
     
     return () => clearTimeout(timer);
   }, []);
+
+  // Close sidebar when clicking elsewhere (for mobile)
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sidebarOpen && !event.target.closest('.sidebar') && !event.target.closest('.menu-button')) {
+        setSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [sidebarOpen]);
 
   // Sidebar variants for animation
   const sidebarVariants = {
@@ -85,7 +100,7 @@ const ClientsLayout = ({ children }) => {
           <div className="flex items-center">
             <button 
               onClick={() => setSidebarOpen(true)}
-              className="p-2 mr-2 rounded-md hover:bg-gray-100 lg:hidden"
+              className="p-2 mr-2 rounded-md hover:bg-gray-100 lg:hidden menu-button"
             >
               <Menu size={24} className="text-gray-600" />
             </button>
@@ -173,8 +188,8 @@ const ClientsLayout = ({ children }) => {
 
       {/* Sidebar */}
       <motion.div 
-        className="fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 lg:z-10 lg:translate-x-0 lg:relative" 
-        initial={sidebarOpen ? "open" : "closed"}
+        className="sidebar fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 lg:z-10 lg:sticky" 
+        initial={false}
         animate={sidebarOpen ? "open" : "closed"}
         variants={sidebarVariants}
       >
@@ -191,7 +206,7 @@ const ClientsLayout = ({ children }) => {
           </button>
         </div>
 
-        <div className="py-4">
+        <div className="py-4 h-[calc(100%-64px)] overflow-y-auto">
           <div className="px-4 mb-4">
             <div className="flex items-center p-3 bg-blue-50 rounded-lg">
               <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
@@ -211,20 +226,25 @@ const ClientsLayout = ({ children }) => {
             <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu principal</p>
             <nav className="space-y-1">
               {menuItems.slice(0, 5).map((item, index) => (
-                <a
+                <Link
                   key={index}
-                  href={item.href}
+                  to={item.path}
                   className={`flex items-center px-3 py-2 text-sm rounded-lg ${
                     index === 0 
                       ? 'bg-blue-50 text-blue-700' 
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
+                  onClick={() => {
+                    if (window.innerWidth < 1024) {
+                      setSidebarOpen(false);
+                    }
+                  }}
                 >
                   <span className={`mr-3 ${index === 0 ? 'text-blue-600' : 'text-gray-500'}`}>
                     {item.icon}
                   </span>
                   {item.label}
-                </a>
+                </Link>
               ))}
             </nav>
           </div>
@@ -233,16 +253,21 @@ const ClientsLayout = ({ children }) => {
             <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Support</p>
             <nav className="space-y-1">
               {menuItems.slice(5).map((item, index) => (
-                <a
+                <Link
                   key={index}
-                  href={item.href}
+                  to={item.path}
                   className="flex items-center px-3 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100"
+                  onClick={() => {
+                    if (window.innerWidth < 1024) {
+                      setSidebarOpen(false);
+                    }
+                  }}
                 >
                   <span className="mr-3 text-gray-500">
                     {item.icon}
                   </span>
                   {item.label}
-                </a>
+                </Link>
               ))}
             </nav>
           </div>

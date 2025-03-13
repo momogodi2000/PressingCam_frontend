@@ -9,8 +9,14 @@ const Authentication = () => {
   const [isLoginForm, setIsLoginForm] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
+  const [otpTimer, setOtpTimer] = useState(60);
+  const [isOtpTimerRunning, setIsOtpTimerRunning] = useState(false);
+  const [userPhoneNumber, setUserPhoneNumber] = useState('');
+  const [otpError, setOtpError] = useState('');
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  const { register, handleSubmit, reset, formState: { errors }, getValues } = useForm();
   const navigate = useNavigate();
 
   // Animation variants
@@ -29,6 +35,56 @@ const Authentication = () => {
     tap: { scale: 0.95 }
   };
 
+  const modalVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.3 } }
+  };
+
+  // OTP Timer
+  useEffect(() => {
+    let interval;
+    
+    if (isOtpTimerRunning && otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (otpTimer === 0) {
+      setIsOtpTimerRunning(false);
+      setOtpTimer(60);
+    }
+
+    return () => clearInterval(interval);
+  }, [isOtpTimerRunning, otpTimer]);
+
+  // Handle OTP input change
+  const handleOtpChange = (index, value) => {
+    // Only allow numbers
+    if (value && !/^\d+$/.test(value)) return;
+
+    const newOtpValues = [...otpValues];
+    newOtpValues[index] = value;
+    setOtpValues(newOtpValues);
+
+    // Auto focus next input
+    if (value !== '' && index < 5) {
+      const nextInput = document.getElementById(`otp-input-${index + 1}`);
+      if (nextInput) {
+        nextInput.focus();
+      }
+    }
+  };
+
+  // Handle keyboard navigation for OTP inputs
+  const handleOtpKeyDown = (index, e) => {
+    // Move to previous input on backspace
+    if (e.key === 'Backspace' && index > 0 && otpValues[index] === '') {
+      const prevInput = document.getElementById(`otp-input-${index - 1}`);
+      if (prevInput) {
+        prevInput.focus();
+      }
+    }
+  };
+
   // Toggle between login and register forms
   const toggleForm = () => {
     setIsLoginForm(!isLoginForm);
@@ -39,18 +95,98 @@ const Authentication = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log('Form data submitted:', data);
-      
-      // Redirect to dashboard on successful login/registration
-      navigate('/dashboard');
+      // For registration, show OTP modal
+      if (!isLoginForm) {
+        // Simulate sending OTP to the phone number
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Store the phone number for display in the OTP modal
+        setUserPhoneNumber(data.phone);
+        
+        // Show OTP modal and start timer
+        setShowOTPModal(true);
+        setIsOtpTimerRunning(true);
+        setOtpValues(['', '', '', '', '', '']);
+        setOtpError('');
+      } else {
+        // For login, simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        console.log('Login data submitted:', data);
+        
+        // Redirect to dashboard on successful login
+        navigate('/clients_panel');
+      }
     } catch (error) {
       console.error('Authentication error:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Verify OTP code
+  const verifyOTP = async () => {
+    setIsLoading(true);
+    try {
+      // Check if all OTP fields are filled
+      if (otpValues.some(val => val === '')) {
+        setOtpError('Veuillez entrer tous les chiffres du code OTP');
+        setIsLoading(false);
+        return;
+      }
+
+      const otpCode = otpValues.join('');
+      console.log('Verifying OTP:', otpCode);
+
+      // Simulate API verification
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Get the form data
+      const formData = getValues();
+      console.log('Registration data submitted:', formData);
+      
+      // Reset OTP modal
+      setShowOTPModal(false);
+      setIsOtpTimerRunning(false);
+      setOtpTimer(60);
+      
+      // Redirect to dashboard on successful verification
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('OTP verification error:', error);
+      setOtpError('Code OTP invalide. Veuillez réessayer.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Resend OTP code
+  const resendOTP = async () => {
+    if (isOtpTimerRunning) return;
+    
+    setIsLoading(true);
+    try {
+      // Simulate API call to resend OTP
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Reset timer and start again
+      setOtpTimer(60);
+      setIsOtpTimerRunning(true);
+      setOtpValues(['', '', '', '', '', '']);
+      setOtpError('');
+      
+      console.log('Resending OTP to:', userPhoneNumber);
+    } catch (error) {
+      console.error('Error resending OTP:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Cancel OTP verification
+  const cancelOTP = () => {
+    setShowOTPModal(false);
+    setIsOtpTimerRunning(false);
+    setOtpTimer(60);
   };
 
   // Service features
@@ -404,6 +540,99 @@ const Authentication = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* OTP Verification Modal */}
+      {showOTPModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 p-4">
+          <motion.div 
+            className="bg-white rounded-xl shadow-xl max-w-md w-full"
+            variants={modalVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-800">Vérification du numéro de téléphone</h3>
+              <p className="mt-2 text-gray-600">
+                Un code OTP à 6 chiffres a été envoyé au numéro <span className="font-medium">{userPhoneNumber}</span>. Veuillez entrer ce code pour vérifier votre numéro.
+              </p>
+            </div>
+
+            <div className="p-6">
+              {/* OTP Input Fields */}
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-medium mb-2">Code OTP</label>
+                <div className="flex justify-between space-x-2">
+                  {otpValues.map((value, index) => (
+                    <input
+                      key={index}
+                      id={`otp-input-${index}`}
+                      type="text"
+                      maxLength={1}
+                      value={value}
+                      onChange={(e) =>                          handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      className={`w-12 h-12 text-center text-lg border ${
+                        otpError ? 'border-red-500' : 'border-gray-300'
+                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition`}
+                    />
+                  ))}
+                </div>
+                {otpError && <p className="text-red-500 text-sm mt-2">{otpError}</p>}
+              </div>
+
+              {/* OTP Timer and Resend Button */}
+              <div className="mt-4 text-center">
+                {isOtpTimerRunning ? (
+                  <p className="text-gray-600">
+                    Vous pouvez renvoyer le code dans <span className="font-medium">{otpTimer}</span> secondes.
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={resendOTP}
+                    className="text-blue-600 hover:text-blue-800 font-medium focus:outline-none"
+                  >
+                    Renvoyer le code OTP
+                  </button>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex justify-end space-x-4">
+                <motion.button
+                  type="button"
+                  onClick={cancelOTP}
+                  className="px-6 py-2 text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 focus:outline-none"
+                  whileHover={buttonVariants.hover}
+                  whileTap={buttonVariants.tap}
+                >
+                  Annuler
+                </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={verifyOTP}
+                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none"
+                  disabled={isLoading}
+                  whileHover={buttonVariants.hover}
+                  whileTap={buttonVariants.tap}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Vérification...
+                    </div>
+                  ) : (
+                    "Vérifier"
+                  )}
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };
