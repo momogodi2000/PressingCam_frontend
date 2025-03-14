@@ -5,7 +5,7 @@ import {
   CreditCard, Calendar, Settings, HelpCircle, LogOut,
   MessageSquare
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const ClientsLayout = ({ children }) => {
   const [notifications, setNotifications] = useState(3);
@@ -13,6 +13,8 @@ const ClientsLayout = ({ children }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const location = useLocation();
   
   // Mock data for notifications
   const notificationsList = [
@@ -24,20 +26,20 @@ const ClientsLayout = ({ children }) => {
 
   // Menu items with paths
   const menuItems = [
-    { icon: <Home size={20} />, label: 'Tableau de bord', path: '/' },
-    { icon: <Package size={20} />, label: 'Mes commandes', path: '/orders' },
-    { icon: <Calendar size={20} />, label: 'Planifier', path: '/schedule' },
-    { icon: <CreditCard size={20} />, label: 'Paiements', path: '/payments' },
-    { icon: <MessageSquare size={20} />, label: 'Messages', path: '/messages' },
-    { icon: <Settings size={20} />, label: 'Paramètres', path: '/settings' },
-    { icon: <HelpCircle size={20} />, label: 'Aide', path: '/help' },
+    { icon: <Home size={20} />, label: 'Tableau de bord', path: '#' },
+    { icon: <Package size={20} />, label: 'Mes commandes', path: '#' },
+    { icon: <Calendar size={20} />, label: 'Planifier', path: '#' },
+    { icon: <CreditCard size={20} />, label: 'Paiements', path: '#' },
+    { icon: <MessageSquare size={20} />, label: 'Messages', path: '#' },
+    { icon: <Settings size={20} />, label: 'Paramètres', path: '#' },
+    { icon: <HelpCircle size={20} />, label: 'Aide', path: '#' },
   ];
 
   // Simulate loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 1500);
+    }, 500);
     
     return () => clearTimeout(timer);
   }, []);
@@ -50,9 +52,19 @@ const ClientsLayout = ({ children }) => {
       }
     };
 
+    // Close menus on resize
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(false);
+      }
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('resize', handleResize);
+    
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('resize', handleResize);
     };
   }, [sidebarOpen]);
 
@@ -92,11 +104,21 @@ const ClientsLayout = ({ children }) => {
     }
   };
 
+  // Check if path is active
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
+
+  // Toggle sidebar collapsed state
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
           <div className="flex items-center">
             <button 
               onClick={() => setSidebarOpen(true)}
@@ -104,11 +126,13 @@ const ClientsLayout = ({ children }) => {
             >
               <Menu size={24} className="text-gray-600" />
             </button>
-            <img
-              src="/logo.png"
-              alt="Contour Wash Logo"
-              className="h-8 mr-4"
-            />
+            <Link to="/clients_panel">
+              <img
+                src="https://placehold.co/100x40"
+                alt="Contour Wash Logo"
+                className="h-8 mr-4"
+              />
+            </Link>
             <h1 className="text-xl font-bold text-gray-800 hidden sm:block">Tableau de bord</h1>
           </div>
 
@@ -175,126 +199,126 @@ const ClientsLayout = ({ children }) => {
         </div>
       </header>
 
-      {/* Sidebar Overlay */}
-      {sidebarOpen && (
-        <motion.div 
-          initial="closed"
-          animate="open"
-          variants={overlayVariants}
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <motion.div 
-        className="sidebar fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 lg:z-10 lg:sticky" 
-        initial={false}
-        animate={sidebarOpen ? "open" : "closed"}
-        variants={sidebarVariants}
-      >
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-          <div className="flex items-center">
-            <img src="/logo.png" alt="Contour Wash Logo" className="h-8 mr-2" />
-            <h2 className="font-bold text-lg">Contour Wash</h2>
-          </div>
-          <button 
+      <div className="flex flex-1 relative">
+        {/* Sidebar Overlay for Mobile */}
+        {sidebarOpen && (
+          <motion.div 
+            initial="closed"
+            animate="open"
+            variants={overlayVariants}
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
-            className="p-1 rounded-md hover:bg-gray-100 lg:hidden"
-          >
-            <X size={20} className="text-gray-600" />
-          </button>
-        </div>
+          />
+        )}
 
-        <div className="py-4 h-[calc(100%-64px)] overflow-y-auto">
-          <div className="px-4 mb-4">
-            <div className="flex items-center p-3 bg-blue-50 rounded-lg">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
-                JK
-              </div>
-              <div>
-                <p className="font-medium">Jean Kamga</p>
-                <div className="flex items-center">
-                  <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Gold</span>
-                  <span className="text-xs text-gray-500 ml-1">1250 pts</span>
+        {/* Mobile Sidebar */}
+        <motion.div 
+          className="sidebar fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 lg:hidden flex flex-col" 
+          initial={false}
+          animate={sidebarOpen ? "open" : "closed"}
+          variants={sidebarVariants}
+        >
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+            <div className="flex items-center">
+              <img src="https://placehold.co/100x40" alt="Contour Wash Logo" className="h-8 mr-2" />
+              <h2 className="font-bold text-lg">Contour Wash</h2>
+            </div>
+            <button 
+              onClick={() => setSidebarOpen(false)}
+              className="p-1 rounded-md hover:bg-gray-100"
+            >
+              <X size={20} className="text-gray-600" />
+            </button>
+          </div>
+
+          <div className="py-4 flex-grow overflow-y-auto">
+            <div className="px-4 mb-4">
+              <div className="flex items-center p-3 bg-blue-50 rounded-lg">
+                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                  JK
+                </div>
+                <div>
+                  <p className="font-medium">Jean Kamga</p>
+                  <div className="flex items-center">
+                    <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Gold</span>
+                    <span className="text-xs text-gray-500 ml-1">1250 pts</span>
+                  </div>
                 </div>
               </div>
             </div>
+            
+            <MobileMenu 
+              menuItems={menuItems} 
+              isActive={isActive} 
+              closeSidebar={() => setSidebarOpen(false)} 
+            />
           </div>
-          
-          <div className="px-3">
-            <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu principal</p>
-            <nav className="space-y-1">
-              {menuItems.slice(0, 5).map((item, index) => (
-                <Link
-                  key={index}
-                  to={item.path}
-                  className={`flex items-center px-3 py-2 text-sm rounded-lg ${
-                    index === 0 
-                      ? 'bg-blue-50 text-blue-700' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                  onClick={() => {
-                    if (window.innerWidth < 1024) {
-                      setSidebarOpen(false);
-                    }
-                  }}
-                >
-                  <span className={`mr-3 ${index === 0 ? 'text-blue-600' : 'text-gray-500'}`}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
+        </motion.div>
 
-          <div className="mt-6 px-3">
-            <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Support</p>
-            <nav className="space-y-1">
-              {menuItems.slice(5).map((item, index) => (
-                <Link
-                  key={index}
-                  to={item.path}
-                  className="flex items-center px-3 py-2 text-sm rounded-lg text-gray-700 hover:bg-gray-100"
-                  onClick={() => {
-                    if (window.innerWidth < 1024) {
-                      setSidebarOpen(false);
-                    }
-                  }}
+        {/* Desktop Sidebar - Collapsible */}
+        <div className={`hidden lg:flex flex-col bg-white shadow-sm transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'} flex-shrink-0`}>
+          <div className={`p-4 border-b border-gray-200 flex ${sidebarCollapsed ? 'justify-center' : 'justify-between'} items-center`}>
+            {!sidebarCollapsed && (
+              <>
+                <div className="flex items-center">
+                  <img src="https://placehold.co/100x40" alt="Contour Wash Logo" className="h-8" />
+                </div>
+                <button 
+                  onClick={toggleSidebar}
+                  className="p-1 rounded-md hover:bg-gray-100"
                 >
-                  <span className="mr-3 text-gray-500">
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-
-          <div className="mt-6 px-4">
-            <div className="bg-blue-600 bg-opacity-10 rounded-lg p-4">
-              <h3 className="font-medium text-blue-800 mb-2">Besoin d'aide?</h3>
-              <p className="text-sm text-blue-700 mb-3">Notre équipe est disponible 7j/7 pour vous assister.</p>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-3 rounded-md w-full">
-                Contacter le support
+                  <ChevronDown size={20} className="text-gray-600 transform rotate-90" />
+                </button>
+              </>
+            )}
+            {sidebarCollapsed && (
+              <button 
+                onClick={toggleSidebar}
+                className="p-1 rounded-md hover:bg-gray-100"
+              >
+                <ChevronDown size={20} className="text-gray-600 transform -rotate-90" />
               </button>
-            </div>
+            )}
+          </div>
+
+          <div className="py-4 flex-grow overflow-y-auto">
+            {!sidebarCollapsed && (
+              <div className="px-4 mb-4">
+                <div className="flex items-center p-3 bg-blue-50 rounded-lg">
+                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                    JK
+                  </div>
+                  <div>
+                    <p className="font-medium">Jean Kamga</p>
+                    <div className="flex items-center">
+                      <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Gold</span>
+                      <span className="text-xs text-gray-500 ml-1">1250 pts</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <DesktopMenu 
+              menuItems={menuItems} 
+              isActive={isActive} 
+              collapsed={sidebarCollapsed} 
+            />
           </div>
         </div>
-      </motion.div>
 
-      {/* Main content */}
-      <div className="lg:ml-64 transition-all duration-300">
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-          ) : (
-            children
-          )}
-        </main>
+        {/* Main content area */}
+        <div className={`flex-1 transition-all duration-300`}>
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              </div>
+            ) : (
+              children
+            )}
+          </main>
+        </div>
       </div>
 
       {/* Notifications dropdown */}
@@ -302,7 +326,15 @@ const ClientsLayout = ({ children }) => {
         <div className="fixed right-4 top-16 bg-white rounded-lg shadow-lg w-80 z-50">
           <div className="p-4 border-b border-gray-200 flex justify-between items-center">
             <h3 className="font-semibold">Notifications</h3>
-            <button className="text-sm text-blue-600">Marquer tout comme lu</button>
+            <button 
+              onClick={() => {
+                setNotifications(0);
+                setShowNotifications(false);
+              }}
+              className="text-sm text-blue-600"
+            >
+              Marquer tout comme lu
+            </button>
           </div>
           <div className="max-h-96 overflow-y-auto">
             {notificationsList.map((notification) => (
@@ -323,6 +355,138 @@ const ClientsLayout = ({ children }) => {
         </div>
       )}
     </div>
+  );
+};
+
+// Mobile Menu Component
+const MobileMenu = ({ menuItems, isActive, closeSidebar }) => {
+  return (
+    <>
+      <div className="px-3">
+        <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu principal</p>
+        <nav className="space-y-1">
+          {menuItems.slice(0, 5).map((item, index) => (
+            <Link
+              key={index}
+              to={item.path}
+              className={`flex items-center px-3 py-2 text-sm rounded-lg ${
+                isActive(item.path)
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+              onClick={closeSidebar}
+            >
+              <span className={`mr-3 ${isActive(item.path) ? 'text-blue-600' : 'text-gray-500'}`}>
+                {item.icon}
+              </span>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
+
+      <div className="mt-6 px-3">
+        <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Support</p>
+        <nav className="space-y-1">
+          {menuItems.slice(5).map((item, index) => (
+            <Link
+              key={index}
+              to={item.path}
+              className={`flex items-center px-3 py-2 text-sm rounded-lg ${
+                isActive(item.path)
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+              onClick={closeSidebar}
+            >
+              <span className={`mr-3 ${isActive(item.path) ? 'text-blue-600' : 'text-gray-500'}`}>
+                {item.icon}
+              </span>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
+
+      <div className="mt-6 px-4">
+        <div className="bg-blue-600 bg-opacity-10 rounded-lg p-4">
+          <h3 className="font-medium text-blue-800 mb-2">Besoin d'aide?</h3>
+          <p className="text-sm text-blue-700 mb-3">Notre équipe est disponible 7j/7 pour vous assister.</p>
+          <button className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-3 rounded-md w-full">
+            Contacter le support
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// Desktop Menu Component - Supports collapsed mode
+const DesktopMenu = ({ menuItems, isActive, collapsed }) => {
+  return (
+    <>
+      <div className="px-3">
+        {!collapsed && (
+          <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu principal</p>
+        )}
+        <nav className="space-y-1">
+          {menuItems.slice(0, 5).map((item, index) => (
+            <Link
+              key={index}
+              to={item.path}
+              className={`flex items-center ${collapsed ? 'justify-center' : ''} px-3 py-2 text-sm rounded-lg ${
+                isActive(item.path)
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+              title={collapsed ? item.label : ''}
+            >
+              <span className={`${collapsed ? '' : 'mr-3'} ${isActive(item.path) ? 'text-blue-600' : 'text-gray-500'}`}>
+                {item.icon}
+              </span>
+              {!collapsed && item.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
+
+      <div className={`mt-6 px-3 ${collapsed ? 'border-t border-gray-200 pt-6' : ''}`}>
+        {!collapsed && (
+          <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Support</p>
+        )}
+        <nav className="space-y-1">
+          {menuItems.slice(5).map((item, index) => (
+            <Link
+              key={index}
+              to={item.path}
+              className={`flex items-center ${collapsed ? 'justify-center' : ''} px-3 py-2 text-sm rounded-lg ${
+                isActive(item.path)
+                  ? 'bg-blue-50 text-blue-700' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+              title={collapsed ? item.label : ''}
+            >
+              <span className={`${collapsed ? '' : 'mr-3'} ${isActive(item.path) ? 'text-blue-600' : 'text-gray-500'}`}>
+                {item.icon}
+              </span>
+              {!collapsed && item.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
+
+      {!collapsed && (
+        <div className="mt-6 px-4">
+          <div className="bg-blue-600 bg-opacity-10 rounded-lg p-4">
+            <h3 className="font-medium text-blue-800 mb-2">Besoin d'aide?</h3>
+            <p className="text-sm text-blue-700 mb-3">Notre équipe est disponible 7j/7 pour vous assister.</p>
+            <button className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-3 rounded-md w-full">
+              Contacter le support
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

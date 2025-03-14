@@ -1,24 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  User,  Menu,  X,  Home,  Package,  Truck,  ClipboardList,  Settings,  LogOut,  Bell, Calendar,BarChart3
+  User, Menu, X, Home, Package, Truck, 
+  ClipboardList, Settings, LogOut, Bell, 
+  Calendar, BarChart3
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const DeliveryLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState(3);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+      if (window.innerWidth >= 768) {
+        setSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
   const menuItems = [
-    { icon: <Home />, label: 'Accueil', active: false },
-    { icon: <Truck />, label: 'Livraisons', active: true },
-    { icon: <Package />, label: 'Ramassages', active: false },
-    { icon: <ClipboardList />, label: 'Historique', active: false },
-    { icon: <BarChart3 />, label: 'Rapports', active: false },
-    { icon: <Calendar />, label: 'Planning', active: false },
+    { icon: <Home size={20} />, label: 'Accueil', active: false },
+    { icon: <Truck size={20} />, label: 'Livraisons', active: true },
+    { icon: <Package size={20} />, label: 'Ramassages', active: false },
+    { icon: <ClipboardList size={20} />, label: 'Historique', active: false },
+    { icon: <BarChart3 size={20} />, label: 'Rapports', active: false },
+    { icon: <Calendar size={20} />, label: 'Planning', active: false },
   ];
 
   return (
@@ -38,10 +54,13 @@ const DeliveryLayout = ({ children }) => {
 
       {/* Sidebar */}
       <motion.aside
-        initial={{ x: -280 }}
-        animate={{ x: sidebarOpen ? 0 : -280 }}
+        initial={windowWidth < 768 ? { x: -280 } : { x: 0 }}
+        animate={{ 
+          x: (windowWidth < 768 && !sidebarOpen) ? -280 : 0,
+          width: windowWidth < 1024 ? 64 : 240
+        }}
         transition={{ type: 'spring', damping: 25 }}
-        className={`fixed z-30 h-full w-64 bg-white shadow-lg md:relative md:translate-x-0`}
+        className="fixed z-30 h-full bg-white shadow-lg md:relative flex-shrink-0"
       >
         <div className="flex h-full flex-col">
           {/* Sidebar header */}
@@ -50,7 +69,7 @@ const DeliveryLayout = ({ children }) => {
               <div className="bg-blue-500 text-white p-1 rounded">
                 <Truck className="h-6 w-6" />
               </div>
-              <span className="text-xl font-bold text-blue-800">DeliTrack</span>
+              <span className={`text-xl font-bold text-blue-800 ${windowWidth >= 768 && windowWidth < 1024 ? 'hidden' : ''}`}>DeliTrack</span>
             </div>
             <button 
               onClick={toggleSidebar} 
@@ -66,7 +85,7 @@ const DeliveryLayout = ({ children }) => {
               <div className="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center text-white">
                 <User className="h-5 w-5" />
               </div>
-              <div>
+              <div className={windowWidth >= 768 && windowWidth < 1024 ? 'hidden' : ''}>
                 <h3 className="font-medium text-gray-800">Paul Ndjomo</h3>
                 <p className="text-xs text-gray-500">Livreur - Zone Douala</p>
               </div>
@@ -80,15 +99,17 @@ const DeliveryLayout = ({ children }) => {
                 <li key={index}>
                   <a 
                     href="#" 
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg ${
+                    className={`flex items-center ${windowWidth >= 768 && windowWidth < 1024 ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-lg ${
                       item.active 
                         ? 'bg-blue-50 text-blue-600' 
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
                     <span className="text-lg">{item.icon}</span>
-                    <span>{item.label}</span>
-                    {item.active && <div className="ml-auto w-1.5 h-5 bg-blue-500 rounded-full"></div>}
+                    {(windowWidth < 768 || windowWidth >= 1024) && <span>{item.label}</span>}
+                    {item.active && (windowWidth < 768 || windowWidth >= 1024) && (
+                      <div className="ml-auto w-1.5 h-5 bg-blue-500 rounded-full"></div>
+                    )}
                   </a>
                 </li>
               ))}
@@ -99,19 +120,19 @@ const DeliveryLayout = ({ children }) => {
                 <li>
                   <a 
                     href="#" 
-                    className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100"
+                    className={`flex items-center ${windowWidth >= 768 && windowWidth < 1024 ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100`}
                   >
                     <Settings className="text-lg" />
-                    <span>Paramètres</span>
+                    {(windowWidth < 768 || windowWidth >= 1024) && <span>Paramètres</span>}
                   </a>
                 </li>
                 <li>
                   <a 
                     href="#" 
-                    className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100"
+                    className={`flex items-center ${windowWidth >= 768 && windowWidth < 1024 ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100`}
                   >
                     <LogOut className="text-lg" />
-                    <span>Déconnexion</span>
+                    {(windowWidth < 768 || windowWidth >= 1024) && <span>Déconnexion</span>}
                   </a>
                 </li>
               </ul>
@@ -119,8 +140,8 @@ const DeliveryLayout = ({ children }) => {
           </nav>
 
           {/* App version */}
-          <div className="p-4 text-xs text-gray-400">
-            Version 1.2.0
+          <div className={`p-4 text-xs text-gray-400 ${windowWidth >= 768 && windowWidth < 1024 ? 'text-center' : ''}`}>
+            {windowWidth >= 768 && windowWidth < 1024 ? '1.2.0' : 'Version 1.2.0'}
           </div>
         </div>
       </motion.aside>
@@ -163,7 +184,7 @@ const DeliveryLayout = ({ children }) => {
         </header>
 
         {/* Main content area */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto p-4">
           {children}
         </main>
       </div>
