@@ -362,19 +362,19 @@ export const AdminLayout = ({
                 </p>
               )}
               <div className="space-y-1 py-2">
-                <motion.button
-                  whileHover={{ x: 5 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setActiveTab('dashboard')}
-                  className={`w-full flex items-center px-3 py-2.5 text-sm rounded-md transition-colors ${
-                    activeTab === 'dashboard' 
-                      ? `${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-600'}` 
-                      : `${darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`
-                  }`}
-                >
-                  <TrendingUp size={18} className={`${sidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
-                  {!sidebarCollapsed && <span>{t.dashboard}</span>}
-                </motion.button>
+                  <motion.button
+                    whileHover={{ x: 5 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => navigate('/admin_panel')}
+                    className={`w-full flex items-center px-3 py-2.5 text-sm rounded-md transition-colors ${
+                      location.pathname === '/admin_panel'
+                        ? `${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-600'}`
+                        : `${darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`
+                    }`}
+                  >
+                    <TrendingUp size={18} className={`${sidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                    {!sidebarCollapsed && <span>{t.dashboard}</span>}
+                  </motion.button>
                 
                 <motion.button
                   whileHover={{ x: 5 }}
@@ -391,18 +391,18 @@ export const AdminLayout = ({
                 </motion.button>
                 
                 <motion.button
-                  whileHover={{ x: 5 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setActiveTab('users')}
-                  className={`w-full flex items-center px-3 py-2.5 text-sm rounded-md transition-colors ${
-                    activeTab === 'users' 
-                      ? `${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-600'}` 
-                      : `${darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`
-                  }`}
-                >
-                  <Users size={18} className={`${sidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
-                  {!sidebarCollapsed && <span>{t.users}</span>}
-                </motion.button>
+                        whileHover={{ x: 5 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => navigate('/user_crud')}
+                        className={`w-full flex items-center px-3 py-2.5 text-sm rounded-md transition-colors ${
+                          location.pathname === '/user_crud'
+                            ? `${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-50 text-blue-600'}`
+                            : `${darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`
+                        }`}
+                      >
+                        <Users size={18} className={`${sidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                        {!sidebarCollapsed && <span>{t.users}</span>}
+                  </motion.button>
                 
                 <motion.button
                   whileHover={{ x: 5 }}
@@ -431,7 +431,8 @@ export const AdminLayout = ({
                   <Calendar size={18} className={`${sidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
                   {!sidebarCollapsed && <span>{t.schedule}</span>}
                 </motion.button>
-                
+               
+
                 <motion.button
                   whileHover={{ x: 5 }}
                   whileTap={{ scale: 0.95 }}

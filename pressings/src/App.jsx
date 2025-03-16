@@ -6,7 +6,7 @@ import Tarifs from './components/landing_page/tarifs.jsx';
 import { AdminDashboard } from './components/Dashboard/panel/admin_panel.jsx';
 import ClientsDashboard from './components/Dashboard/panel/Clients_panel.jsx'; // Ensure this import is correct
 import DeliveryDashboard from './components/Dashboard/panel/delivery_panel.jsx';
-import UserManagement from './components/Dashboard/admin/Gerer les utilisateur/Gerer les utilisateur.jsx';
+import UserListPage from './components/Dashboard/admin/Gerer les utilisateur/UserListPage.jsx';
 
 
 function App() {
@@ -22,7 +22,7 @@ function App() {
 
         {/* Dashboard Routes */}
         <Route path="/admin_panel" element={<AdminDashboard />} />
-        <Route path="/user_crud" element={<UserManagement />} />
+        <Route path="/user_crud" element={<UserListPage />} />
 
         <Route path="/clients_panel" element={<ClientsDashboard />} /> {/* Ensure this route is correct */}
         <Route path="/delivery_panel" element={<DeliveryDashboard />} />
