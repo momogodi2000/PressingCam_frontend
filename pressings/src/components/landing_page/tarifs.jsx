@@ -1,5 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 
 const Tarifs = ({ isOpen, onClose }) => {
   if (!isOpen) return null;

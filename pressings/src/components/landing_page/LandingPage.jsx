@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpCircle, ChevronDown, MapPin, Clock, CreditCard, Star, Truck, ShieldCheck, CheckCircle, Smartphone, MessageSquare } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../../LanguageSwitcher';
+import ContactService from '../../Services/auth/contact_us'; // Adjust the path as necessary
+
+
 
 // Import images
 import Blanchisseriejpg from '../../assets/images/Blanchisseriejpg.jpg';
@@ -684,96 +689,133 @@ const LandingPage = () => {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-20 bg-white">
-        <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Contactez-nous</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Vous avez des questions ou besoin d’assistance ? Notre équipe est là pour vous aider.
-            </p>
+  <section id="contact" className="py-20 bg-white">
+  <div className="container mx-auto px-4 md:px-6 lg:px-8">
+    <div className="text-center mb-16">
+      <h2 className="text-3xl md:text-4xl font-bold mb-4">Contactez-nous</h2>
+      <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+        Vous avez des questions ou besoin d’assistance ? Notre équipe est là pour vous aider.
+      </p>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+      {/* Contact Form */}
+      <div className="bg-gray-50 p-8 rounded-xl shadow-md">
+      <form onSubmit={async (e) => {
+        e.preventDefault();
+        const formData = {
+          name: e.target.name.value,
+          email: e.target.email.value,
+          subject: e.target.subject.value, // Get subject from form instead of hardcoding
+          message: e.target.message.value,
+        };
+
+        const response = await ContactService.submitContactForm(formData);
+        if (response.success) {
+          alert('Message sent successfully!');
+          // Reset form
+          e.target.reset();
+        } else {
+          alert('Failed to send message. Please try again.');
+          console.error(response.error); // Log the error for debugging
+        }
+      }}>
+          <div className="mb-6">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              Nom complet
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              placeholder="Votre nom"
+              required
+            />
           </div>
+          <div className="mb-6">
+            <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
+              Sujet
+            </label>
+            <input
+              type="text"
+              id="subject"
+              name="subject"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              placeholder="Sujet de votre message"
+              required
+            />
+          </div>
+          <div className="mb-6">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Adresse email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              placeholder="Votre email"
+              required
+            />
+          </div>
+          <div className="mb-6">
+            <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+              Message
+            </label>
+            <textarea
+              id="message"
+              name="message"
+              rows="5"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              placeholder="Votre message"
+              required
+            ></textarea>
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow transition-colors"
+          >
+            Envoyer le message
+          </button>
+        </form>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            {/* Contact Form */}
-            <div className="bg-gray-50 p-8 rounded-xl shadow-md">
-              <form>
-                <div className="mb-6">
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Nom complet
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    placeholder="Votre nom"
-                  />
-                </div>
-                <div className="mb-6">
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Adresse email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    placeholder="Votre email"
-                  />
-                </div>
-                <div className="mb-6">
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-                    Message
-                  </label>
-                  <textarea
-                    id="message"
-                    rows="5"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    placeholder="Votre message"
-                  ></textarea>
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow transition-colors"
-                >
-                  Envoyer le message
-                </button>
-              </form>
-            </div>
-
-            {/* Contact Info */}
-            <div className="space-y-8">
-              <div className="flex items-start">
-                <div className="bg-blue-100 p-3 rounded-full">
-                  <MapPin className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-xl font-bold mb-2">Adresse</h3>
-                  <p className="text-gray-600">Yaounde, Cameroun</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <div className="bg-teal-100 p-3 rounded-full">
-                  <Clock className="h-6 w-6 text-teal-600" />
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-xl font-bold mb-2">Heures d’ouverture</h3>
-                  <p className="text-gray-600">Lundi - Vendredi : 8h - 18h</p>
-                  <p className="text-gray-600">Samedi : 9h - 14h</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <div className="bg-yellow-100 p-3 rounded-full">
-                  <MessageSquare className="h-6 w-6 text-yellow-600" />
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-xl font-bold mb-2">Support</h3>
-                  <p className="text-gray-600">Email : support@contourwash.com</p>
-                  <p className="text-gray-600">Téléphone : +237 691 667 137</p>
-                </div>
-              </div>
-            </div>
+      {/* Contact Info */}
+      <div className="space-y-8">
+        <div className="flex items-start">
+          <div className="bg-blue-100 p-3 rounded-full">
+            <MapPin className="h-6 w-6 text-blue-600" />
+          </div>
+          <div className="ml-4">
+            <h3 className="text-xl font-bold mb-2">Adresse</h3>
+            <p className="text-gray-600">Yaounde, Cameroun</p>
           </div>
         </div>
-      </section>
+        <div className="flex items-start">
+          <div className="bg-teal-100 p-3 rounded-full">
+            <Clock className="h-6 w-6 text-teal-600" />
+          </div>
+          <div className="ml-4">
+            <h3 className="text-xl font-bold mb-2">Heures d’ouverture</h3>
+            <p className="text-gray-600">Lundi - Vendredi : 8h - 18h</p>
+            <p className="text-gray-600">Samedi : 9h - 14h</p>
+          </div>
+        </div>
+        <div className="flex items-start">
+          <div className="bg-yellow-100 p-3 rounded-full">
+            <MessageSquare className="h-6 w-6 text-yellow-600" />
+          </div>
+          <div className="ml-4">
+            <h3 className="text-xl font-bold mb-2">Support</h3>
+            <p className="text-gray-600">Email : support@contourwash.com</p>
+            <p className="text-gray-600">Téléphone : +237 691 667 137</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* Footer */}
       <footer className="bg-gray-800 text-white py-12">
@@ -884,6 +926,7 @@ const LandingPage = () => {
       </button>
     </div>
   );
+  
 };
 
 export default LandingPage;

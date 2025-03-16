@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { FiMail, FiPhone, FiLock, FiEye, FiEyeOff, FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import AuthService from '../../Services/auth/authentication'; // Import AuthService
 import logo from '../../assets/logo/logo.png';
 
 const ForgotPassword = () => {
@@ -17,6 +19,7 @@ const ForgotPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [resetIdentifier, setResetIdentifier] = useState('');
+  const [errorMessage, setErrorMessage] = useState(''); // Added for error handling
   
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm();
   const navigate = useNavigate();
@@ -40,14 +43,19 @@ const ForgotPassword = () => {
     tap: { scale: 0.95 }
   };
 
+  // Clear error message when changing steps
+  useEffect(() => {
+    setErrorMessage('');
+  }, [currentStep]);
+
   // Handle initial password reset request
   const handleResetRequest = async (data) => {
     setIsLoading(true);
+    setErrorMessage('');
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log('Reset request submitted:', data);
+      // Use AuthService for password reset request
+      await AuthService.requestPasswordReset(data.email);
       
       // Store the email or phone for the next steps
       setResetIdentifier(resetMethod === 'email' ? data.email : data.phone);
@@ -56,6 +64,7 @@ const ForgotPassword = () => {
       setCurrentStep(2);
     } catch (error) {
       console.error('Reset request error:', error);
+      setErrorMessage(error.message || 'Échec de la demande de réinitialisation. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -64,16 +73,23 @@ const ForgotPassword = () => {
   // Handle verification code submission
   const handleVerifyCode = async (data) => {
     setIsLoading(true);
+    setErrorMessage('');
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Combine all code inputs into a single code
+      const verificationCode = [
+        data.code0, data.code1, data.code2, 
+        data.code3, data.code4, data.code5
+      ].join('');
       
-      console.log('Verification code submitted:', data);
+      // Use AuthService to verify the reset code
+      await AuthService.verifyResetCode(resetIdentifier, verificationCode);
       
       // Move to reset password step
       setCurrentStep(3);
     } catch (error) {
       console.error('Verification error:', error);
+      setErrorMessage(error.message || 'Code de vérification invalide. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -82,16 +98,47 @@ const ForgotPassword = () => {
   // Handle new password submission
   const handlePasswordReset = async (data) => {
     setIsLoading(true);
+    setErrorMessage('');
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Combine all code inputs into a single code - we need this from the previous step
+      const verificationCode = [
+        data.code0, data.code1, data.code2, 
+        data.code3, data.code4, data.code5
+      ].join('');
       
-      console.log('New password submitted:', data);
+      // Use AuthService to reset the password
+      await AuthService.resetPassword(
+        resetIdentifier,
+        verificationCode,
+        data.password,
+        data.confirmPassword
+      );
       
       // Move to success step
       setCurrentStep(4);
     } catch (error) {
       console.error('Password reset error:', error);
+      setErrorMessage(error.message || 'Échec de la réinitialisation du mot de passe. Veuillez réessayer.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle resend verification code
+  const handleResendCode = async () => {
+    setIsLoading(true);
+    setErrorMessage('');
+    
+    try {
+      // Use AuthService to resend verification code
+      await AuthService.requestPasswordReset(resetIdentifier);
+      
+      // Show success message (could use a toast notification here)
+      alert('Un nouveau code a été envoyé à votre adresse email.');
+    } catch (error) {
+      console.error('Resend code error:', error);
+      setErrorMessage(error.message || 'Échec de l\'envoi du code. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -110,6 +157,12 @@ const ForgotPassword = () => {
           >
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Réinitialisation du mot de passe</h2>
             <p className="text-gray-600 mb-6">Entrez votre email ou numéro de téléphone pour réinitialiser votre mot de passe.</p>
+            
+            {errorMessage && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+                {errorMessage}
+              </div>
+            )}
             
             <div className="mb-6">
               <div className="flex items-center justify-center space-x-4 mb-6">
@@ -222,6 +275,12 @@ const ForgotPassword = () => {
               </span>
             </p>
             
+            {errorMessage && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+                {errorMessage}
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit(handleVerifyCode)}>
               <div className="mb-6">
                 <label className="block text-gray-700 text-sm font-medium mb-2">Code de vérification</label>
@@ -249,6 +308,8 @@ const ForgotPassword = () => {
                 <button 
                   type="button"
                   className="text-blue-600 hover:text-blue-800 font-medium text-sm focus:outline-none"
+                  onClick={handleResendCode}
+                  disabled={isLoading}
                 >
                   Renvoyer le code
                 </button>
@@ -287,6 +348,12 @@ const ForgotPassword = () => {
           >
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Créer un nouveau mot de passe</h2>
             <p className="text-gray-600 mb-6">Veuillez créer un nouveau mot de passe sécurisé.</p>
+            
+            {errorMessage && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+                {errorMessage}
+              </div>
+            )}
             
             <form onSubmit={handleSubmit(handlePasswordReset)}>
               <div className="mb-4">

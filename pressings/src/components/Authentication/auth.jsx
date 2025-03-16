@@ -4,6 +4,7 @@ import { FiUser, FiLock, FiMail, FiPhone, FiEye, FiEyeOff, FiHome, FiShoppingBag
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo/logo.png';
+import AuthService from '../../Services/auth/authentication';
 
 const Authentication = () => {
   const [isLoginForm, setIsLoginForm] = useState(true);
@@ -13,10 +14,11 @@ const Authentication = () => {
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
   const [otpTimer, setOtpTimer] = useState(60);
   const [isOtpTimerRunning, setIsOtpTimerRunning] = useState(false);
-  const [userPhoneNumber, setUserPhoneNumber] = useState('');
+  const [userEmail, setUserEmail] = useState('');
   const [otpError, setOtpError] = useState('');
+  const [authError, setAuthError] = useState('');
 
-  const { register, handleSubmit, reset, formState: { errors }, getValues } = useForm();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm();
   const navigate = useNavigate();
 
   // Animation variants
@@ -43,7 +45,6 @@ const Authentication = () => {
   // OTP Timer
   useEffect(() => {
     let interval;
-    
     if (isOtpTimerRunning && otpTimer > 0) {
       interval = setInterval(() => {
         setOtpTimer((prev) => prev - 1);
@@ -52,72 +53,94 @@ const Authentication = () => {
       setIsOtpTimerRunning(false);
       setOtpTimer(60);
     }
-
     return () => clearInterval(interval);
   }, [isOtpTimerRunning, otpTimer]);
 
+  // Check if user is already authenticated
+  useEffect(() => {
+    if (AuthService.isAuthenticated()) {
+      redirectBasedOnRole();
+    }
+  }, []);
+
+  // Redirect user based on role
+  const redirectBasedOnRole = async () => {
+    try {
+      const redirectUrl = await AuthService.getRoleRedirect();
+      navigate(redirectUrl);
+    } catch (error) {
+      console.error('Redirect error:', error);
+      navigate('/clients_panel'); // Default redirect
+    }
+  };
+
   // Handle OTP input change
   const handleOtpChange = (index, value) => {
-    // Only allow numbers
-    if (value && !/^\d+$/.test(value)) return;
-
+    if (value && !/^\d+$/.test(value)) return; // Only allow numbers
     const newOtpValues = [...otpValues];
     newOtpValues[index] = value;
     setOtpValues(newOtpValues);
 
-    // Auto focus next input
+    // Auto-focus next input
     if (value !== '' && index < 5) {
       const nextInput = document.getElementById(`otp-input-${index + 1}`);
-      if (nextInput) {
-        nextInput.focus();
-      }
+      if (nextInput) nextInput.focus();
     }
   };
 
   // Handle keyboard navigation for OTP inputs
   const handleOtpKeyDown = (index, e) => {
-    // Move to previous input on backspace
     if (e.key === 'Backspace' && index > 0 && otpValues[index] === '') {
       const prevInput = document.getElementById(`otp-input-${index - 1}`);
-      if (prevInput) {
-        prevInput.focus();
-      }
+      if (prevInput) prevInput.focus();
     }
   };
 
   // Toggle between login and register forms
   const toggleForm = () => {
     setIsLoginForm(!isLoginForm);
+    setAuthError('');
     reset();
   };
 
   // Handle form submission
   const onSubmit = async (data) => {
     setIsLoading(true);
+    setAuthError('');
+
     try {
-      // For registration, show OTP modal
-      if (!isLoginForm) {
-        // Simulate sending OTP to the phone number
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Store the phone number for display in the OTP modal
-        setUserPhoneNumber(data.phone);
-        
-        // Show OTP modal and start timer
-        setShowOTPModal(true);
-        setIsOtpTimerRunning(true);
-        setOtpValues(['', '', '', '', '', '']);
-        setOtpError('');
+      if (isLoginForm) {
+        // Login flow
+        const response = await AuthService.login(data.email, data.password);
+        if (response.access) {
+          redirectBasedOnRole();
+        }
       } else {
-        // For login, simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        console.log('Login data submitted:', data);
-        
-        // Redirect to dashboard on successful login
-        navigate('/clients_panel');
+        // Registration flow
+        const userData = {
+          email: data.email,
+          password: data.password,
+          first_name: data.fullName.split(' ')[0],
+          last_name: data.fullName.split(' ')[1] || '',
+          phone_number: data.phone,
+          role: 'client'
+        };
+
+        await AuthService.register(userData);
+        console.log('Registration successful, showing OTP modal'); // Debug log
+        setUserEmail(data.email); // Store email for OTP verification
+        setShowOTPModal(true); // Show OTP modal
+        setIsOtpTimerRunning(true); // Start OTP timer
+        setOtpValues(['', '', '', '', '', '']); // Reset OTP inputs
+        setOtpError(''); // Clear OTP errors
       }
     } catch (error) {
-      console.error('Authentication error:', error);
+      console.error('Authentication error:', error); // Debug log
+      setAuthError(
+        error.message ||
+        error.error ||
+        (isLoginForm ? 'Échec de la connexion. Vérifiez vos identifiants.' : 'Échec de l\'inscription. Veuillez réessayer.')
+      );
     } finally {
       setIsLoading(false);
     }
@@ -126,6 +149,8 @@ const Authentication = () => {
   // Verify OTP code
   const verifyOTP = async () => {
     setIsLoading(true);
+    setOtpError('');
+
     try {
       // Check if all OTP fields are filled
       if (otpValues.some(val => val === '')) {
@@ -135,25 +160,17 @@ const Authentication = () => {
       }
 
       const otpCode = otpValues.join('');
-      console.log('Verifying OTP:', otpCode);
+      const response = await AuthService.verifyOTP(userEmail, otpCode);
+      console.log('OTP verification successful:', response); // Debug log
 
-      // Simulate API verification
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Get the form data
-      const formData = getValues();
-      console.log('Registration data submitted:', formData);
-      
-      // Reset OTP modal
+      // Reset OTP modal and redirect
       setShowOTPModal(false);
       setIsOtpTimerRunning(false);
       setOtpTimer(60);
-      
-      // Redirect to dashboard on successful verification
-      navigate('/dashboard');
+      redirectBasedOnRole();
     } catch (error) {
-      console.error('OTP verification error:', error);
-      setOtpError('Code OTP invalide. Veuillez réessayer.');
+      console.error('OTP verification error:', error); // Debug log
+      setOtpError(error.message || error.error || 'Code OTP invalide. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -162,21 +179,19 @@ const Authentication = () => {
   // Resend OTP code
   const resendOTP = async () => {
     if (isOtpTimerRunning) return;
-    
+
     setIsLoading(true);
+    setOtpError('');
+
     try {
-      // Simulate API call to resend OTP
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Reset timer and start again
-      setOtpTimer(60);
-      setIsOtpTimerRunning(true);
-      setOtpValues(['', '', '', '', '', '']);
-      setOtpError('');
-      
-      console.log('Resending OTP to:', userPhoneNumber);
+      await AuthService.resendOTP(userEmail);
+      console.log('OTP resent to:', userEmail); // Debug log
+      setOtpTimer(60); // Reset timer
+      setIsOtpTimerRunning(true); // Restart timer
+      setOtpValues(['', '', '', '', '', '']); // Reset OTP inputs
     } catch (error) {
-      console.error('Error resending OTP:', error);
+      console.error('Error resending OTP:', error); // Debug log
+      setOtpError(error.message || error.error || 'Échec de l\'envoi du code OTP. Veuillez réessayer.');
     } finally {
       setIsLoading(false);
     }
@@ -191,27 +206,27 @@ const Authentication = () => {
 
   // Service features
   const features = [
-    { 
-      icon: <FiShoppingBag className="text-blue-600 text-2xl mb-2" />, 
-      title: "Services Premium", 
-      description: "Blanchisserie, Pressing, et Entretien de chaussures de haute qualité" 
+    {
+      icon: <FiShoppingBag className="text-blue-600 text-2xl mb-2" />,
+      title: "Services Premium",
+      description: "Blanchisserie, Pressing, et Entretien de chaussures de haute qualité"
     },
-    { 
-      icon: <FiClock className="text-blue-600 text-2xl mb-2" />, 
-      title: "Livraison Rapide", 
-      description: "Ramassage et livraison à domicile dans les délais convenus" 
+    {
+      icon: <FiClock className="text-blue-600 text-2xl mb-2" />,
+      title: "Livraison Rapide",
+      description: "Ramassage et livraison à domicile dans les délais convenus"
     },
-    { 
-      icon: <FiHome className="text-blue-600 text-2xl mb-2" />, 
-      title: "Service à Domicile", 
-      description: "Nous venons chez vous pour récupérer et livrer vos articles" 
+    {
+      icon: <FiHome className="text-blue-600 text-2xl mb-2" />,
+      title: "Service à Domicile",
+      description: "Nous venons chez vous pour récupérer et livrer vos articles"
     }
   ];
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       {/* Home Button */}
-      <motion.div 
+      <motion.div
         className="fixed top-4 left-4 z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -230,7 +245,7 @@ const Authentication = () => {
 
       <div className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-start mt-8">
         {/* Left side - Features */}
-        <motion.div 
+        <motion.div
           className="lg:w-2/5 px-6 pt-12 pb-6 hidden lg:block"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -243,7 +258,7 @@ const Authentication = () => {
 
           <div className="space-y-6">
             {features.map((feature, index) => (
-              <motion.div 
+              <motion.div
                 key={index}
                 className="bg-white p-6 rounded-xl shadow-md"
                 whileHover={{ y: -5, boxShadow: "0px 10px 20px rgba(0, 0, 0, 0.1)" }}
@@ -280,7 +295,7 @@ const Authentication = () => {
         </motion.div>
 
         {/* Right side - Authentication Form */}
-        <motion.div 
+        <motion.div
           className="lg:w-3/5 w-full"
           initial="hidden"
           animate="visible"
@@ -294,20 +309,27 @@ const Authentication = () => {
                 {isLoginForm ? 'Bienvenue!' : 'Créer un compte'}
               </h2>
               <p className="text-blue-100 mt-1">
-                {isLoginForm 
-                  ? 'Connectez-vous pour accéder à vos services de blanchisserie' 
+                {isLoginForm
+                  ? 'Connectez-vous pour accéder à vos services de blanchisserie'
                   : 'Rejoignez Contour Wash pour des services premium'}
               </p>
             </div>
 
             {/* Form Section */}
-            <motion.div 
+            <motion.div
               className="p-8"
               variants={formVariants}
               key={isLoginForm ? 'login' : 'register'}
               initial="hidden"
               animate="visible"
             >
+              {/* Error display for form submission */}
+              {authError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-300 text-red-700 rounded-lg">
+                  {authError}
+                </div>
+              )}
+
               <form onSubmit={handleSubmit(onSubmit)}>
                 {/* Registration Form Fields */}
                 {!isLoginForm && (
@@ -334,7 +356,7 @@ const Authentication = () => {
                           type="tel"
                           className={`w-full pl-10 pr-4 py-2 rounded-lg border ${errors.phone ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition`}
                           placeholder="+237 6XX XXX XXX"
-                          {...register('phone', { 
+                          {...register('phone', {
                             required: "Le numéro de téléphone est obligatoire",
                             pattern: {
                               value: /^(\+237|237)?[6-9][0-9]{8}$/,
@@ -348,7 +370,7 @@ const Authentication = () => {
                   </>
                 )}
 
-                {/* Common Fields */}
+                {/* Email Field */}
                 <div className="mb-4">
                   <label className="block text-gray-700 text-sm font-medium mb-2">Email</label>
                   <div className="relative">
@@ -357,7 +379,7 @@ const Authentication = () => {
                       type="email"
                       className={`w-full pl-10 pr-4 py-2 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition`}
                       placeholder="contourwash@gmail.com"
-                      {...register('email', { 
+                      {...register('email', {
                         required: "L'email est obligatoire",
                         pattern: {
                           value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -377,7 +399,7 @@ const Authentication = () => {
                       type={showPassword ? "text" : "password"}
                       className={`w-full pl-10 pr-10 py-2 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-500 transition`}
                       placeholder={isLoginForm ? "Votre mot de passe" : "Choisissez un mot de passe fort"}
-                      {...register('password', { 
+                      {...register('password', {
                         required: "Le mot de passe est obligatoire",
                         minLength: {
                           value: 8,
@@ -442,8 +464,8 @@ const Authentication = () => {
               {/* Form Toggle */}
               <div className="text-center mt-6">
                 <p className="text-sm text-gray-600">
-                  {isLoginForm 
-                    ? "Nouveau sur Contour Wash?" 
+                  {isLoginForm
+                    ? "Nouveau sur Contour Wash?"
                     : "Vous avez déjà un compte?"}
                   <button
                     onClick={toggleForm}
@@ -522,7 +544,7 @@ const Authentication = () => {
           <div className="lg:hidden mt-8 space-y-4">
             <h3 className="text-xl font-bold text-center text-gray-800 mb-4">Pourquoi choisir Contour Wash?</h3>
             {features.map((feature, index) => (
-              <motion.div 
+              <motion.div
                 key={index}
                 className="bg-white p-4 rounded-xl shadow-md"
                 whileHover={{ y: -3 }}
@@ -544,7 +566,7 @@ const Authentication = () => {
       {/* OTP Verification Modal */}
       {showOTPModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 p-4">
-          <motion.div 
+          <motion.div
             className="bg-white rounded-xl shadow-xl max-w-md w-full"
             variants={modalVariants}
             initial="hidden"
@@ -553,7 +575,7 @@ const Authentication = () => {
             <div className="p-6 border-b border-gray-200">
               <h3 className="text-xl font-bold text-gray-800">Vérification du numéro de téléphone</h3>
               <p className="mt-2 text-gray-600">
-                Un code OTP à 6 chiffres a été envoyé au numéro <span className="font-medium">{userPhoneNumber}</span>. Veuillez entrer ce code pour vérifier votre numéro.
+                Un code OTP à 6 chiffres a été envoyé à l'email <span className="font-medium">{userEmail}</span>. Veuillez entrer ce code pour vérifier votre compte.
               </p>
             </div>
 
@@ -569,7 +591,7 @@ const Authentication = () => {
                       type="text"
                       maxLength={1}
                       value={value}
-                      onChange={(e) =>                          handleOtpChange(index, e.target.value)}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
                       className={`w-12 h-12 text-center text-lg border ${
                         otpError ? 'border-red-500' : 'border-gray-300'

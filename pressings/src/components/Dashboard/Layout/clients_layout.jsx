@@ -5,7 +5,12 @@ import {
   CreditCard, Calendar, Settings, HelpCircle, LogOut,
   MessageSquare
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import AuthService from '../../../Services/auth/authentication';
+import ProfileModal from '../clients/profile/my_profile';
+
+// Import the logo image
+import logo from '../../../assets/logo/logo.png'; // Update the path to your logo
 
 const ClientsLayout = ({ children }) => {
   const [notifications, setNotifications] = useState(3);
@@ -14,7 +19,10 @@ const ClientsLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Mock data for notifications
   const notificationsList = [
@@ -35,38 +43,73 @@ const ClientsLayout = ({ children }) => {
     { icon: <HelpCircle size={20} />, label: 'Aide', path: '#' },
   ];
 
-  // Simulate loading
+  // Check authentication status on component mount and route changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
+    const checkAuth = () => {
+      if (!AuthService.isAuthenticated()) {
+        // Redirect to login if not authenticated
+        navigate('/login', { replace: true });
+      }
+    };
+
+    checkAuth();
     
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Close sidebar when clicking elsewhere (for mobile)
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (sidebarOpen && !event.target.closest('.sidebar') && !event.target.closest('.menu-button')) {
-        setSidebarOpen(false);
+    // Listen for auth token changes (for example, if token expires)
+    const handleStorageChange = (e) => {
+      if (e.key === 'authToken' && !e.newValue) {
+        checkAuth();
       }
     };
-
-    // Close menus on resize
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setSidebarOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('resize', handleResize);
+    
+    window.addEventListener('storage', handleStorageChange);
     
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('storage', handleStorageChange);
     };
-  }, [sidebarOpen]);
+  }, [navigate, location.pathname]);
+
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        if (AuthService.isAuthenticated()) {
+          const userProfile = await AuthService.getUserProfile();
+          setUserData(userProfile);
+        } else {
+          // Redirect to login if token exists but is invalid
+          navigate('/login', { replace: true });
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        // Handle authentication errors by redirecting to login
+        if (error.response?.status === 401) {
+          AuthService.logout();
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [navigate]);
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await AuthService.logout();
+      // Note: Navigation is now handled in the AuthService.logout method
+    } catch (error) {
+      console.error('Error logging out:', error);
+      // Fallback in case the logout method fails to redirect
+      navigate('/login', { replace: true });
+    }
+  };
+  
+  // Handle profile modal
+  const handleOpenProfileModal = () => {
+    setShowProfileModal(true);
+    setUserMenuOpen(false);
+  };
 
   // Sidebar variants for animation
   const sidebarVariants = {
@@ -114,6 +157,18 @@ const ClientsLayout = ({ children }) => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!userData) return "U";
+    
+    const names = [userData.first_name, userData.last_name].filter(Boolean);
+    if (names.length === 0) {
+      return userData.email.substring(0, 2).toUpperCase();
+    }
+    
+    return names.map(name => name.charAt(0)).join('').toUpperCase();
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header */}
@@ -128,7 +183,7 @@ const ClientsLayout = ({ children }) => {
             </button>
             <Link to="/clients_panel">
               <img
-                src="https://placehold.co/100x40"
+                src={logo} // Use the imported logo
                 alt="Contour Wash Logo"
                 className="h-8 mr-4"
               />
@@ -168,19 +223,26 @@ const ClientsLayout = ({ children }) => {
                 className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100"
               >
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  JK
+                  {getUserInitials()}
                 </div>
-                <span className="hidden md:inline text-sm font-medium">Jean Kamga</span>
+                <span className="hidden md:inline text-sm font-medium">
+                  {userData ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || userData.email : 'Chargement...'}
+                </span>
                 <ChevronDown size={16} className="text-gray-600" />
               </button>
 
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-40">
                   <div className="p-3 border-b border-gray-100">
-                    <p className="font-medium">Jean Kamga</p>
-                    <p className="text-sm text-gray-500">jean.kamga@example.com</p>
+                    <p className="font-medium">
+                      {userData ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Utilisateur' : 'Chargement...'}
+                    </p>
+                    <p className="text-sm text-gray-500">{userData?.email || ''}</p>
                   </div>
-                  <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                  <button 
+                    onClick={handleOpenProfileModal}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  >
                     <User size={16} className="mr-2" />
                     Mon profil
                   </button>
@@ -188,7 +250,10 @@ const ClientsLayout = ({ children }) => {
                     <Settings size={16} className="mr-2" />
                     Paramètres
                   </button>
-                  <button className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center">
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                  >
                     <LogOut size={16} className="mr-2" />
                     Déconnexion
                   </button>
@@ -235,10 +300,12 @@ const ClientsLayout = ({ children }) => {
             <div className="px-4 mb-4">
               <div className="flex items-center p-3 bg-blue-50 rounded-lg">
                 <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
-                  JK
+                  {getUserInitials()}
                 </div>
                 <div>
-                  <p className="font-medium">Jean Kamga</p>
+                  <p className="font-medium">
+                    {userData ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || userData.email : 'Chargement...'}
+                  </p>
                   <div className="flex items-center">
                     <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Gold</span>
                     <span className="text-xs text-gray-500 ml-1">1250 pts</span>
@@ -286,10 +353,12 @@ const ClientsLayout = ({ children }) => {
               <div className="px-4 mb-4">
                 <div className="flex items-center p-3 bg-blue-50 rounded-lg">
                   <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
-                    JK
+                    {getUserInitials()}
                   </div>
                   <div>
-                    <p className="font-medium">Jean Kamga</p>
+                    <p className="font-medium">
+                      {userData ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || userData.email : 'Chargement...'}
+                    </p>
                     <div className="flex items-center">
                       <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Gold</span>
                       <span className="text-xs text-gray-500 ml-1">1250 pts</span>
@@ -353,6 +422,15 @@ const ClientsLayout = ({ children }) => {
             Voir toutes les notifications
           </div>
         </div>
+      )}
+
+      {/* Profile Modal */}
+      {showProfileModal && (
+        <ProfileModal 
+          userData={userData} 
+          onClose={() => setShowProfileModal(false)} 
+          onUpdate={(updatedData) => setUserData(updatedData)}
+        />
       )}
     </div>
   );

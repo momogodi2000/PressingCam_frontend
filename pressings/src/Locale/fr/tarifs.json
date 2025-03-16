@@ -1,0 +1,51 @@
+{
+    "title": "Nos Tarifs",
+  
+    "pressingService": "Service Pressing",
+    "mensClothing": "Vêtements pour hommes",
+    "shirts": "Chemises (Classiques, habillées)",
+    "pants": "Pantalons (Costumes, chinos, jeans)",
+    "jackets": "Vestes (Blazers, vestons, manteaux)",
+    "suits": "Costumes entiers (veste et pantalon)",
+    "vests": "Gilets (En laine, en coton)",
+    "sweaters": "Pulls (En cachemire, en laine, en maille)",
+    "coats": "Manteaux (En laine, en cuir, en tissu technique)",
+  
+    "womensClothing": "Vêtements pour femmes",
+    "dresses": "Robes (Cocktail, soirée, de ville)",
+    "skirts": "Jupes (Courtes, longues, plissées)",
+    "womensPants": "Pantalons (Costumes, tailleurs, jeans)",
+    "blouses": "Blouses (En soie, en coton, en dentelle)",
+    "womensJackets": "Vestes (Blazers, vestons, manteaux)",
+    "womensCoats": "Manteaux (En fourrure, en laine, en cuir)",
+    "weddingDresses": "Robes de mariée",
+    "specialPrice": "Tarif spécial",
+  
+    "otherClothing": "Autres vêtements",
+    "sportswear": "Vêtements de sport (Maillots, survêtements)",
+    "homeLinens": "Linge de maison (Draps, housses de couette, serviettes)",
+    "leatherItems": "Articles en cuir (Sacs à main)",
+    "furs": "Fourrures",
+    "workClothes": "Vêtements de travail",
+  
+    "laundryService": "Service Blanchisserie",
+    "standardRate": "Tarif standard",
+    "laundryIncludes": "Incluant draps, linges de maison, vêtements du quotidien et linge de bébé",
+  
+    "shoeService": "Service Entretien de Chaussures",
+    "standardCleaning": "Nettoyage complet standard",
+    "leatherTreatment": "Traitement du cuir",
+    "minorRepairs": "Réparations mineures",
+    "professionalPolishing": "Polissage professionnel",
+  
+    "pricingCriteria": "Critères de différenciation pour la tarification",
+    "sizeAndWeight": "Taille et poids du vêtement: Les pièces volumineuses (manteau long, robe de soirée) nécessitent généralement plus de travail et de produits.",
+    "fabricType": "Type de tissu: La soie, le cuir, le cachemire ou les tissus techniques demandent des traitements spécifiques et plus délicats.",
+    "numberOfPieces": "Nombre de pièces: Un costume (veste + pantalon) sera facturé différemment d'une chemise seule.",
+    "soilingDegree": "Degré de salissure: Les taches complexes ou les vêtements très sales peuvent nécessiter un traitement supplémentaire.",
+    "specialFinishes": "Finitions particulières: Les broderies, les paillettes ou les ornements délicats demandent une attention particulière.",
+    "orderUrgency": "Urgence de la commande: Un service express peut entraîner un surcoût.",
+  
+    "price": "{{price}}",
+    "priceRange": "{{min}} - {{max}}"
+  }

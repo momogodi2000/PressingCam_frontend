@@ -1,0 +1,51 @@
+{
+    "title": "Our Prices",
+  
+    "pressingService": "Dry Cleaning Service",
+    "mensClothing": "Men's Clothing",
+    "shirts": "Shirts (Classic, dress)",
+    "pants": "Pants (Suits, chinos, jeans)",
+    "jackets": "Jackets (Blazers, sport coats)",
+    "suits": "Full suits (jacket and pants)",
+    "vests": "Vests (Wool, cotton)",
+    "sweaters": "Sweaters (Cashmere, wool, knit)",
+    "coats": "Coats (Wool, leather, technical fabric)",
+  
+    "womensClothing": "Women's Clothing",
+    "dresses": "Dresses (Cocktail, evening, casual)",
+    "skirts": "Skirts (Short, long, pleated)",
+    "womensPants": "Pants (Suits, tailored, jeans)",
+    "blouses": "Blouses (Silk, cotton, lace)",
+    "womensJackets": "Jackets (Blazers, sport coats)",
+    "womensCoats": "Coats (Fur, wool, leather)",
+    "weddingDresses": "Wedding dresses",
+    "specialPrice": "Special price",
+  
+    "otherClothing": "Other Items",
+    "sportswear": "Sportswear (Jerseys, tracksuits)",
+    "homeLinens": "Home linens (Sheets, duvet covers, towels)",
+    "leatherItems": "Leather items (Handbags)",
+    "furs": "Furs",
+    "workClothes": "Work clothes",
+  
+    "laundryService": "Laundry Service",
+    "standardRate": "Standard rate",
+    "laundryIncludes": "Including sheets, household linens, everyday clothes and baby clothes",
+  
+    "shoeService": "Shoe Care Service",
+    "standardCleaning": "Standard complete cleaning",
+    "leatherTreatment": "Leather treatment",
+    "minorRepairs": "Minor repairs",
+    "professionalPolishing": "Professional polishing",
+  
+    "pricingCriteria": "Pricing Differentiation Criteria",
+    "sizeAndWeight": "Size and weight of garment: Bulky items (long coat, evening dress) generally require more work and products.",
+    "fabricType": "Fabric type: Silk, leather, cashmere or technical fabrics require specific and more delicate treatments.",
+    "numberOfPieces": "Number of pieces: A suit (jacket + pants) will be priced differently than a single shirt.",
+    "soilingDegree": "Degree of soiling: Complex stains or very dirty clothes may require additional treatment.",
+    "specialFinishes": "Special finishes: Embroidery, sequins or delicate ornaments require special attention.",
+    "orderUrgency": "Order urgency: Express service may incur an additional cost.",
+  
+    "price": "{{price}}",
+    "priceRange": "{{min}} - {{max}}"
+  }
