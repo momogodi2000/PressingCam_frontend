@@ -648,11 +648,11 @@ export const AdminLayout = ({
                             {language === 'fr' 
                               ? ['L', 'M', 'M', 'J', 'V', 'S', 'D']
                               : ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                            }.map((day, i) => (
+                            }.map((day, i) ={'>'} (
                               <div key={i} className={`text-center text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                                 {day}
                               </div>
-                            ))}
+                            )){'}'}
                             {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
                               <motion.button
                                 key={day}

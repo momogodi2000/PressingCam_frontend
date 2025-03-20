@@ -34,13 +34,13 @@ const ClientsLayout = ({ children }) => {
 
   // Menu items with paths
   const menuItems = [
-    { icon: <Home size={20} />, label: 'Tableau de bord', path: '#' },
-    { icon: <Package size={20} />, label: 'Mes commandes', path: '#' },
-    { icon: <Calendar size={20} />, label: 'Planifier', path: '#' },
+    { icon: <Home size={20} />, label: 'Tableau de bord', path: '/clients_panel' },
+    { icon: <Package size={20} />, label: 'Mes commandes', path: '/order' },
+    { icon: <Calendar size={20} />, label: 'Planifier', path: '/plan' },
     { icon: <CreditCard size={20} />, label: 'Paiements', path: '#' },
-    { icon: <MessageSquare size={20} />, label: 'Messages', path: '#' },
-    { icon: <Settings size={20} />, label: 'Paramètres', path: '#' },
-    { icon: <HelpCircle size={20} />, label: 'Aide', path: '#' },
+    { icon: <MessageSquare size={20} />, label: 'Messages', path: '/chat' },
+    { icon: <Settings size={20} />, label: 'Paramètres', path: '/clients_setting' },
+    { icon: <HelpCircle size={20} />, label: 'Aide', path: '/aide' },
   ];
 
   // Check authentication status on component mount and route changes
