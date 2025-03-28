@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, MapPin, Truck, ArrowRight, Info, CheckCircle, History, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import ClientsLayout from '../../Layout/clients_layout';
+import { deliveryService } from '../../../../Services/clients/deliveryService';
+// In your form component (e.g., DeliveryPlanForm.js)
+import { validateDeliveryPlanForm, createValidatedDeliveryPlan } from './validationUtils';
 
 const Planifier = () => {
   const [step, setStep] = useState(1);
@@ -24,6 +27,31 @@ const Planifier = () => {
     quarter: ''
   });
   const [showHistory, setShowHistory] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [planningHistory, setPlanningHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Fetch saved addresses and history on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [addresses, history] = await Promise.all([
+          deliveryService.getSavedAddresses(),
+          deliveryService.getDeliveryPlanHistory()
+        ]);
+        setSavedAddresses(addresses);
+        setPlanningHistory(history);
+      } catch (err) {
+        setError(err.message || 'Failed to load data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
 
   // Handle window resize for responsive adjustments
   useEffect(() => {
@@ -36,12 +64,6 @@ const Planifier = () => {
       return () => window.removeEventListener('resize', handleResize);
     }
   }, []);
-
-  // Sample addresses for the user
-  const savedAddresses = [
-    { id: 1, name: 'Domicile', address: 'Bonapriso, Rue des Manguiers, Douala' },
-    { id: 2, name: 'Bureau', address: 'Bonanjo, Immeuble Horizon, 3ème étage, Douala' }
-  ];
 
   // City and quarters data
   const cityQuartersData = {
@@ -64,58 +86,16 @@ const Planifier = () => {
     '16:00 - 18:00'
   ];
 
-  // Sample planning history
-  const planningHistory = [
-    {
-      id: "PL-2025-001",
-      pickupDate: "2025-03-10",
-      pickupTime: "10:00 - 12:00",
-      deliveryDate: "2025-03-12",
-      deliveryTime: "14:00 - 16:00",
-      address: "Bonapriso, Rue des Manguiers, Douala",
-      status: "Terminé",
-      isExpress: false
-    },
-    {
-      id: "PL-2025-002",
-      pickupDate: "2025-03-15",
-      pickupTime: "08:00 - 10:00",
-      deliveryDate: "2025-03-16",
-      deliveryTime: "10:00 - 12:00",
-      address: "Bonanjo, Immeuble Horizon, 3ème étage, Douala",
-      status: "En cours",
-      isExpress: true
-    },
-    {
-      id: "PL-2025-003",
-      pickupDate: "2025-03-20",
-      pickupTime: "14:00 - 16:00",
-      deliveryDate: "2025-03-22",
-      deliveryTime: "08:00 - 10:00",
-      address: "Bonapriso, Rue des Manguiers, Douala",
-      status: "Planifié",
-      isExpress: false
-    }
-  ];
-
-  // Available dates (next 7 days) - for old date picker
-  const getAvailableDates = () => {
-    const dates = [];
-    const today = new Date();
-    
-    for (let i = 1; i <= 7; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      dates.push({
-        value: date.toISOString().split('T')[0],
-        label: date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-      });
-    }
-    
-    return dates;
+  // Calculate delivery date based on pickup (for standard service)
+  const calculateDeliveryDate = (pickupDate) => {
+    if (!pickupDate) return '';
+    const date = new Date(pickupDate);
+    date.setDate(date.getDate() + (isExpressService ? 1 : 2));
+    return date.toISOString().split('T')[0];
   };
 
-  const availableDates = getAvailableDates();
+  // Calculate additional cost for express service
+  const expressServiceCost = 2000; // FCFA
 
   // Calendar functions
   const getDaysInMonth = (year, month) => {
@@ -179,6 +159,13 @@ const Planifier = () => {
     }
   };
 
+  const handleDeliveryDateSelect = (date) => {
+    if (!isPastDate(date) && new Date(date) >= new Date(calculateDeliveryDate(selectedPickupDate))) {
+      setSelectedDeliveryDate(formatDateForComparison(date));
+      setShowCalendar(false);
+    }
+  };
+
   // Effect to update delivery date when pickup date or express service changes
   useEffect(() => {
     if (selectedPickupDate && isExpressService) {
@@ -203,12 +190,66 @@ const Planifier = () => {
     }
   };
 
-  const handleSubmit = () => {
-    // Here you would typically send the data to your backend
-    alert('Planification réussie ! Vous recevrez bientôt une confirmation.');
-    // Reset form or redirect to confirmation page
+  const handleSubmit = async () => {
+    try {
+      setIsLoading(true);
+      
+      const planData = {
+        pickup_date: selectedPickupDate,
+        pickup_time: selectedPickupTime,
+        delivery_date: selectedDeliveryDate,
+        delivery_time: selectedDeliveryTime,
+        address: selectedAddress,
+        is_express_service: isExpressService,
+        special_instructions: specialInstructions,
+        status: 'Planifié'  // Add initial status
+      };
+      
+      // Validate form data before submission
+      const { isValid, errors } = validateDeliveryPlanForm(planData);
+      
+      if (!isValid) {
+        // Display validation errors
+        setError(errors);
+        return;
+      }
+      
+      // If validation passes, submit the form
+      await deliveryService.createDeliveryPlan(planData);
+      
+      // Refresh history after successful submission
+      const history = await deliveryService.getDeliveryPlanHistory();
+      setPlanningHistory(history);
+      
+      // Show success and reset form
+      alert('Planification réussie ! Vous recevrez bientôt une confirmation.');
+      setStep(1);
+      setSelectedPickupDate('');
+      setSelectedPickupTime('');
+      setSelectedDeliveryDate('');
+      setSelectedDeliveryTime('');
+      setSelectedAddress('');
+      setIsExpressService(false);
+      setSpecialInstructions('');
+    } catch (err) {
+      console.error('Error creating delivery plan:', err.response?.data || err.message);
+      
+      // Format and display backend validation errors if they exist
+      if (err.response?.data) {
+        const backendErrors = err.response.data;
+        // Convert backend error format to a more user-friendly format
+        const formattedErrors = Object.entries(backendErrors)
+          .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+          .join('\n');
+        setError(formattedErrors);
+      } else {
+        setError('Failed to create delivery plan');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
-
+  
   const handleCityChange = (city) => {
     setSelectedCity(city);
     setSelectedQuarter('');
@@ -220,7 +261,7 @@ const Planifier = () => {
     setNewAddress({...newAddress, quarter: quarter});
   };
 
-  const handleAddNewAddress = () => {
+  const handleAddNewAddress = async () => {
     // Form validation for new address
     if (
       newAddress.name.trim() === '' || 
@@ -232,30 +273,39 @@ const Planifier = () => {
       return;
     }
 
-    const fullAddress = `${newAddress.street}, ${newAddress.quarter}, ${newAddress.city.charAt(0).toUpperCase() + newAddress.city.slice(1)}`;
-    setSelectedAddress(fullAddress);
-    setSelectedAddressType('existing');
-    
-    // Here you would typically send the new address to your backend
-    // For this example, we'll just show an alert
-    alert('Nouvelle adresse ajoutée avec succès!');
-  };
-
-  // Calculate delivery date based on pickup (for standard service)
-  const calculateDeliveryDate = (pickupDate) => {
-    if (!pickupDate) return '';
-    const date = new Date(pickupDate);
-    date.setDate(date.getDate() + (isExpressService ? 1 : 2));
-    return date.toISOString().split('T')[0];
-  };
-
-  // Calculate additional cost for express service
-  const expressServiceCost = 2000; // FCFA
-
-  // Determine grid columns based on screen size
-  const getGridCols = (defaultCols, mdCols) => {
-    if (typeof window === 'undefined') return `grid-cols-${defaultCols} md:grid-cols-${mdCols}`;
-    return windowWidth < 768 ? `grid-cols-${defaultCols}` : `grid-cols-${mdCols}`;
+    try {
+      setIsLoading(true);
+      const addressData = {
+        name: newAddress.name,
+        street: newAddress.street,
+        city: newAddress.city,
+        quarter: newAddress.quarter,
+        is_default: false
+      };
+      
+      const savedAddress = await deliveryService.createSavedAddress(addressData);
+      
+      // Update local state with the new address
+      setSavedAddresses([...savedAddresses, savedAddress]);
+      
+      const fullAddress = `${newAddress.street}, ${newAddress.quarter}, ${newAddress.city.charAt(0).toUpperCase() + newAddress.city.slice(1)}`;
+      setSelectedAddress(fullAddress);
+      setSelectedAddressType('existing');
+      
+      // Reset new address form
+      setNewAddress({
+        name: '',
+        street: '',
+        city: '',
+        quarter: ''
+      });
+      
+      alert('Nouvelle adresse ajoutée avec succès!');
+    } catch (err) {
+      setError(err.message || 'Failed to save address');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Check if current step is valid to enable/disable next button
@@ -276,6 +326,57 @@ const Planifier = () => {
     }
   };
 
+  // Available dates (next 7 days) - for old date picker
+  const getAvailableDates = () => {
+    const dates = [];
+    const today = new Date();
+    
+    for (let i = 1; i <= 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      dates.push({
+        value: date.toISOString().split('T')[0],
+        label: date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+      });
+    }
+    
+    return dates;
+  };
+
+  const availableDates = getAvailableDates();
+
+  if (isLoading) {
+    return (
+      <ClientsLayout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-700">Chargement en cours...</p>
+          </div>
+        </div>
+      </ClientsLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <ClientsLayout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+            <div className="text-red-500 font-medium mb-4">Erreur</div>
+            <p className="text-gray-700 mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+      </ClientsLayout>
+    );
+  }
+
   return (
     <ClientsLayout>
       <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
@@ -286,7 +387,8 @@ const Planifier = () => {
                 <h1 className="text-xl sm:text-2xl font-bold text-white">Historique des planifications</h1>
                 <button 
                   onClick={() => setShowHistory(false)}
-                  className="text-white hover:text-blue-100 transition-colors duration-200">
+                  className="text-white hover:text-blue-100 transition-colors duration-200"
+                >
                   <ArrowRight size={20} />
                 </button>
               </div>
@@ -314,9 +416,9 @@ const Planifier = () => {
                                 Ramassage
                               </h3>
                               <p className="text-gray-800 ml-6">
-                                {new Date(plan.pickupDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                {new Date(plan.pickup_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                               </p>
-                              <p className="text-gray-600 ml-6 text-sm">{plan.pickupTime}</p>
+                              <p className="text-gray-600 ml-6 text-sm">{plan.pickup_time}</p>
                             </div>
                             <div>
                               <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -324,9 +426,9 @@ const Planifier = () => {
                                 Livraison
                               </h3>
                               <p className="text-gray-800 ml-6">
-                                {new Date(plan.deliveryDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                {new Date(plan.delivery_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                               </p>
-                              <p className="text-gray-600 ml-6 text-sm">{plan.deliveryTime}</p>
+                              <p className="text-gray-600 ml-6 text-sm">{plan.delivery_time}</p>
                             </div>
                             <div className="sm:col-span-2">
                               <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -335,7 +437,7 @@ const Planifier = () => {
                               </h3>
                               <p className="text-gray-800 ml-6">{plan.address}</p>
                             </div>
-                            {plan.isExpress && (
+                            {plan.is_express_service && (
                               <div className="sm:col-span-2">
                                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Service Express</span>
                               </div>
@@ -358,7 +460,8 @@ const Planifier = () => {
                 </div>
                 <button 
                   onClick={() => setShowHistory(true)}
-                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 transition-colors duration-200 rounded-md px-3 py-1 text-white text-sm">
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 transition-colors duration-200 rounded-md px-3 py-1 text-white text-sm"
+                >
                   <History size={16} />
                   <span className="hidden sm:inline">Historique</span>
                 </button>
@@ -540,77 +643,147 @@ const Planifier = () => {
                 )}
                 
                 {/* Step 2: Delivery Date and Time */}
-                {step === 2 && (
-                  <div className="space-y-6 transition-opacity duration-300">
-                    <div className="animate-fadeIn">
-                      <h2 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center gap-2">
-                        <Calendar size={20} className="text-blue-600" />
-                        Date de livraison
-                      </h2>
-                      <p className="text-sm sm:text-base text-gray-600 mb-4">Choisissez quand vous souhaitez être livré</p>
-                      
-                      {isExpressService ? (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-6">
-                          <div className="flex items-center">
-                            <Info size={18} className="text-blue-600 mr-2 flex-shrink-0" />
-                            <p className="text-sm sm:text-base text-gray-700">
-                              Avec le service express, votre livraison sera effectuée le <span className="font-semibold">{
-                                new Date(calculateDeliveryDate(selectedPickupDate)).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-                              }</span>
-                            </p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
-                          {availableDates
-                            .filter(date => new Date(date.value) >= new Date(calculateDeliveryDate(selectedPickupDate)))
-                            .slice(0, 4)
-                            .map((date) => (
-                            <div 
-                              key={date.value}
-                              onClick={() => setSelectedDeliveryDate(date.value)}
-                              className={`border rounded-lg p-3 sm:p-4 cursor-pointer transition-all duration-200 ${
-                                selectedDeliveryDate === date.value ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
-                              }`}
-                            >
-                              <div className="flex items-center">
-                                <div className={`w-5 h-5 rounded-full border ${
-                                  selectedDeliveryDate === date.value ? 'border-blue-600 bg-blue-600' : 'border-gray-300'
-                                } mr-3 flex items-center justify-center`}>
-                                  {selectedDeliveryDate === date.value && (
-                                    <div className="w-2 h-2 rounded-full bg-white"></div>
-                                  )}
+              {/* Step 2: Delivery Date and Time */}
+                        {step === 2 && (
+                          <div className="space-y-6 transition-opacity duration-300">
+                            <div className="animate-fadeIn">
+                              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center gap-2">
+                                <Calendar size={20} className="text-blue-600" />
+                                Date de livraison
+                              </h2>
+                              <p className="text-sm sm:text-base text-gray-600 mb-4">Choisissez quand vous souhaitez être livré</p>
+                              
+                              {isExpressService ? (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-6">
+                                  <div className="flex items-center">
+                                    <Info size={18} className="text-blue-600 mr-2 flex-shrink-0" />
+                                    <p className="text-sm sm:text-base text-gray-700">
+                                      Avec le service express, votre livraison sera effectuée le <span className="font-semibold">{
+                                        new Date(calculateDeliveryDate(selectedPickupDate)).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+                                      }</span>
+                                    </p>
+                                  </div>
                                 </div>
-                                <span className="capitalize text-sm sm:text-base">{date.label}</span>
+                              ) : (
+                                <>
+                                  {/* Delivery Date Calendar */}
+                                  <div className="relative mb-6">
+                                    <div 
+                                      onClick={() => setShowCalendar(!showCalendar)}
+                                      className="flex items-center justify-between p-3 border border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 transition-colors"
+                                    >
+                                      <div className="flex items-center">
+                                        <Calendar className="text-blue-600 mr-2" size={18} />
+                                        <span className="text-gray-700">
+                                          {selectedDeliveryDate 
+                                            ? new Date(selectedDeliveryDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                                            : 'Sélectionner une date'}
+                                        </span>
+                                      </div>
+                                      <ChevronDown className={`text-gray-500 transition-transform duration-200 ${showCalendar ? 'rotate-180' : ''}`} size={18} />
+                                    </div>
+                                    
+                                    {showCalendar && (
+                                      <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
+                                        <div className="p-3 border-b border-gray-200">
+                                          <div className="flex items-center justify-between">
+                                            <button 
+                                              onClick={handlePrevMonth}
+                                              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                                            >
+                                              <ChevronLeft size={20} className="text-gray-600" />
+                                            </button>
+                                            <div className="font-medium">
+                                              {currentMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                                            </div>
+                                            <button 
+                                              onClick={handleNextMonth}
+                                              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                                            >
+                                              <ChevronRight size={20} className="text-gray-600" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                        <div className="p-2">
+                                          <div className="grid grid-cols-7 mb-1">
+                                            {['Di', 'Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa'].map((day, i) => (
+                                              <div key={i} className="text-center text-xs font-medium text-gray-500 py-1">
+                                                {day}
+                                              </div>
+                                            ))}
+                                          </div>
+                                          <div className="grid grid-cols-7 gap-1">
+                                            {generateCalendarDays().map((date, i) => {
+                                              const isDisabled = date && (
+                                                isPastDate(date) || 
+                                                new Date(date) < new Date(calculateDeliveryDate(selectedPickupDate))
+                                              );
+                                              return (
+                                                <div 
+                                                  key={i} 
+                                                  onClick={() => !isDisabled && date && handleDeliveryDateSelect(date)}
+                                                  className={`
+                                                    text-center p-2 rounded-full text-sm 
+                                                    ${!date ? '' : isDisabled ? 'text-gray-300 cursor-not-allowed' : 'cursor-pointer hover:bg-blue-50'}
+                                                    ${date && isToday(date) ? 'border border-blue-400' : ''}
+                                                    ${date && selectedDeliveryDate === formatDateForComparison(date) ? 'bg-blue-600 text-white hover:bg-blue-700' : ''}
+                                                  `}
+                                                >
+                                                  {date ? date.getDate() : ''}
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                        <div className="p-2 border-t border-gray-200 flex justify-end">
+                                          <button 
+                                            onClick={() => setShowCalendar(false)}
+                                            className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                          >
+                                            Fermer
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Info about standard delivery */}
+                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-6">
+                                    <div className="flex items-center">
+                                      <Info size={18} className="text-blue-600 mr-2 flex-shrink-0" />
+                                      <p className="text-sm sm:text-base text-gray-700">
+                                        Avec le service standard, vous pouvez choisir une date de livraison à partir du <span className="font-semibold">{
+                                          new Date(calculateDeliveryDate(selectedPickupDate)).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+                                        }</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            <div className="animate-fadeIn">
+                              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center gap-2">
+                                <Clock size={20} className="text-blue-600" />
+                                Créneau horaire de livraison
+                              </h2>
+                              <p className="text-sm sm:text-base text-gray-600 mb-4">Sélectionnez une plage horaire pour la livraison</p>
+                              
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                                {timeSlots.map((slot) => (
+                                  <div 
+                                    key={slot}
+                                    onClick={() => setSelectedDeliveryTime(slot)}
+                                    className={`border rounded-lg p-2 sm:p-3 text-center cursor-pointer transition-all duration-200 ${
+                                      selectedDeliveryTime === slot ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 text-gray-700'
+                                    }`}
+                                  >
+                                    <span className="text-sm sm:text-base">{slot}</span>
+                                  </div>
+                                ))}
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="animate-fadeIn">
-                      <h2 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center gap-2">
-                        <Clock size={20} className="text-blue-600" />
-                        Créneau horaire de livraison
-                      </h2>
-                      <p className="text-sm sm:text-base text-gray-600 mb-4">Sélectionnez une plage horaire pour la livraison</p>
-                      
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
-                        {timeSlots.map((slot) => (
-                          <div 
-                            key={slot}
-                            onClick={() => setSelectedDeliveryTime(slot)}
-                            className={`border rounded-lg p-2 sm:p-3 text-center cursor-pointer transition-all duration-200 ${
-                              selectedDeliveryTime === slot ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 text-gray-700'
-                            }`}
-                          >
-                            <span className="text-sm sm:text-base">{slot}</span>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                        )}
                 
                 {/* Step 3: Address Selection */}
                 {step === 3 && (
@@ -651,22 +824,22 @@ const Planifier = () => {
                             {savedAddresses.map((address) => (
                               <div 
                                 key={address.id}
-                                onClick={() => setSelectedAddress(address.address)}
+                                onClick={() => setSelectedAddress(`${address.street}, ${address.quarter}, ${address.city}`)}
                                 className={`border rounded-lg p-3 sm:p-4 cursor-pointer transition-all duration-200 ${
-                                  selectedAddress === address.address ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
+                                  selectedAddress === `${address.street}, ${address.quarter}, ${address.city}` ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-blue-300'
                                 }`}
                               >
                                 <div className="flex items-center">
                                   <div className={`w-5 h-5 rounded-full border ${
-                                    selectedAddress === address.address ? 'border-blue-600 bg-blue-600' : 'border-gray-300'
+                                    selectedAddress === `${address.street}, ${address.quarter}, ${address.city}` ? 'border-blue-600 bg-blue-600' : 'border-gray-300'
                                   } mr-3 flex items-center justify-center`}>
-                                    {selectedAddress === address.address && (
+                                    {selectedAddress === `${address.street}, ${address.quarter}, ${address.city}` && (
                                       <div className="w-2 h-2 rounded-full bg-white"></div>
                                     )}
                                   </div>
                                   <div>
                                     <p className="text-sm sm:text-base font-medium">{address.name}</p>
-                                    <p className="text-xs sm:text-sm text-gray-600">{address.address}</p>
+                                    <p className="text-xs sm:text-sm text-gray-600">{address.street}, {address.quarter}, {address.city}</p>
                                   </div>
                                 </div>
                               </div>
@@ -836,9 +1009,10 @@ const Planifier = () => {
                   {step === 4 && (
                     <button 
                       onClick={handleSubmit}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
+                      disabled={isLoading}
+                      className={`px-4 py-2 ${isLoading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'} text-white rounded-lg transition-colors duration-200`}
                     >
-                      Confirmer la planification
+                      {isLoading ? 'En cours...' : 'Confirmer la planification'}
                     </button>
                   )}
                 </div>
